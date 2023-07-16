@@ -1605,9 +1605,11 @@ version = "0.1.0"
 dependencies = [
  "crossterm",
  "env_logger",
+ "log",
  "rspotify",
  "tokio",
  "tui",
+ "webbrowser",
 ]
 
 [[package]]
