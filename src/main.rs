@@ -1,55 +1,70 @@
-use rspotify::{prelude::*, scopes, AuthCodePkceSpotify, Credentials, OAuth};
+use std::{io, thread, time::Duration};
+use tui::{
+    backend::CrosstermBackend,
+    widgets::{Widget, Block, Borders},
+    layout::{Layout, Constraint, Direction},
+    Terminal, style::Style, text::Span
+};
+use crossterm::{
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
 
-#[tokio::main]
-async fn main() {
-    // You can use any logger for debugging.
-    env_logger::init();
+fn main() -> Result<(), io::Error> {
+    // setup terminal
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
 
-    // Set RSPOTIFY_CLIENT_ID and RSPOTIFY_CLIENT_SECRET in an .env file (after
-    // enabling the `env-file` feature) or export them manually:
-    //
-    // export RSPOTIFY_CLIENT_ID="your client_id"
-    //
-    // It will then be read with `from_env`.
-    //
-    // Otherwise, set client_id explictly:
-    //
-    // ```
-    // let creds = Credentials::new_pkce("my-client-id");
-    // ```
-    let creds = Credentials::from_env().unwrap();
+    terminal.draw(|f| {
+        let layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(
+                [
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(30),
+                    Constraint::Percentage(50),
+                ]
+            )
+            .split(f.size());
+        let mut block1_title = Span::styled("David's cool block blah blah blah blah blah blah blah blah blah blah blah", Style::default().bg(tui::style::Color::DarkGray));
+        if block1_title.width() > layout[0].width as usize {
+            let mut new_title = String::from(&block1_title.content[..layout[0].width as usize - 3]);
+            new_title.push_str("...");
+            block1_title = Span::styled(new_title, block1_title.style);
+        }
+        let block = Block::default()
+            .title(block1_title)
+            .borders(Borders::NONE)
+            .style(Style::default().bg(tui::style::Color::Cyan));
+        f.render_widget(block, layout[0]);
+        let block = Block::default()
+            .title("Block 2")
+            .borders(Borders::ALL)
+            .borders(Borders::NONE)
+            .style(Style::default().bg(tui::style::Color::LightCyan));
+        f.render_widget(block, layout[1]);
+        let block = Block::default()
+            .title("Block 3")
+            .borders(Borders::ALL)
+            .borders(Borders::NONE)
+            .style(Style::default().bg(tui::style::Color::LightBlue));
+        f.render_widget(block, layout[2]);
+    })?;
 
-    // Same for RSPOTIFY_REDIRECT_URI. You can also set it explictly:
-    //
-    // ```
-    // let oauth = OAuth {
-    //     redirect_uri: "http://localhost:8888/callback".to_string(),
-    //     scopes: scopes!("user-read-recently-played"),
-    //     ..Default::default(),
-    // };
-    // ```
-    let oauth = OAuth::from_env(scopes!("user-read-playback-state")).unwrap();
+    thread::sleep(Duration::from_millis(5000));
 
-    let mut spotify = AuthCodePkceSpotify::new(creds.clone(), oauth.clone());
+    // restore terminal
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
 
-    // Obtaining the access token
-    let url = spotify.get_authorize_url(None).unwrap();
-    // This function requires the `cli` feature enabled.
-    spotify.prompt_for_token(&url).await.unwrap();
-
-    // Running the requests
-    let history = spotify.current_playback(None, None::<Vec<_>>).await;
-    println!("Response: {history:?}");
-
-    // Token refreshing works as well, but only with the one generated in the
-    // previous request (they actually expire, unlike the regular code auth
-    // flow).
-    let prev_token = spotify.token.lock().await.unwrap();
-    let spotify = AuthCodePkceSpotify::new(creds, oauth);
-    *spotify.token.lock().await.unwrap() = prev_token.clone();
-    spotify.refresh_token().await.unwrap();
-
-    // Running the requests again
-    let history = spotify.current_playback(None, None::<Vec<_>>).await;
-    println!("Response after refreshing token: {history:?}");
+    Ok(())
 }
