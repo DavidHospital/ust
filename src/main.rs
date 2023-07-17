@@ -48,9 +48,6 @@ async fn main() {
         AuthCodePkceSpotify::with_config(creds.clone(), oauth.clone(), spotify_config.clone());
 
     // Obtaining the access token
-    let url = spotify.get_authorize_url(None).unwrap();
-
-    // This function requires the `cli` feature enabled.
     match spotify.read_token_cache(true).await {
         Ok(Some(token)) => {
             if token.is_expired() {
@@ -66,6 +63,7 @@ async fn main() {
             }
         }
         _ => {
+            let url = spotify.get_authorize_url(None).unwrap();
             match redirect_uri_web_server(8888, &url) {
                 Ok(url) => {
                     let code = spotify.parse_response_code(&url).unwrap();
