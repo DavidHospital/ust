@@ -3,10 +3,7 @@ use std::{
     net::{TcpListener, TcpStream},
 };
 
-pub fn redirect_uri_web_server(
-    port: u16,
-    url: &str,
-) -> Result<String, ()> {
+pub fn redirect_uri_web_server(port: u16, url: &str) -> Result<String, ()> {
     let listener = TcpListener::bind(format!("127.0.0.1:{}", port));
 
     match listener {

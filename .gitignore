@@ -3,3 +3,4 @@
 
 /target
 .env
+.spotify_token_cache.json
