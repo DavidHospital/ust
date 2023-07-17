@@ -1,5 +1,5 @@
 use dotenv::dotenv;
-use log::error;
+use log::{error, debug};
 use rspotify::{
     model::PlayableItem, prelude::*, scopes, AuthCodePkceSpotify, Config, Credentials, OAuth,
 };
@@ -42,6 +42,7 @@ async fn main() {
 
     let spotify_config = Config {
         token_cached: true,
+        token_refreshing: true,
         ..Default::default()
     };
     let mut spotify =
@@ -50,19 +51,11 @@ async fn main() {
     // Obtaining the access token
     match spotify.read_token_cache(true).await {
         Ok(Some(token)) => {
-            if token.is_expired() {
-                spotify = AuthCodePkceSpotify::with_config(
-                    creds.clone(),
-                    oauth.clone(),
-                    spotify_config.clone(),
-                );
-                *spotify.token.lock().await.unwrap() = Some(token);
-                spotify.refresh_token().await.unwrap();
-            } else {
-                *spotify.token.lock().await.unwrap() = Some(token.clone());
-            }
+            debug!("Successfully read token from cache");
+            *spotify.token.lock().await.unwrap() = Some(token.clone());
         }
         _ => {
+            debug!("Failed to retrieve token from cache, requires manual authentication");
             let url = spotify.get_authorize_url(None).unwrap();
             match redirect_uri_web_server(8888, &url) {
                 Ok(url) => {
