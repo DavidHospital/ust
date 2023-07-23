@@ -1,5 +1,5 @@
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -9,7 +9,7 @@ use tui::{
     layout::{Constraint, Direction, Layout},
     style::Style,
     text::Span,
-    widgets::{Block, Borders, Widget},
+    widgets::{Block, Borders},
     Terminal,
 };
 
